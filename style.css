@@ -1,0 +1,106 @@
+/*
+Theme Name: Stallion Signal Pro
+Theme URI: https://stallionsignalpro.com/
+Author: Your Name
+Description: Custom theme for Stallion Signal Pro trading signals website
+Version: 1.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: stallion-signal-pro
+
+DEVELOPMENT NOTES:
+- Currently using TailwindCSS via CDN (enqueued in functions.php)
+- For production, follow these steps to compile TailwindCSS properly:
+  1. Install Node.js and npm
+  2. Run: npm install -D tailwindcss
+  3. Initialize a tailwind.config.js file: npx tailwindcss init
+  4. Create a CSS file with Tailwind directives
+  5. Build with the CLI: npx tailwindcss -i input.css -o style.css
+  6. For production, use purge/minify options
+*/
+
+body {
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Custom utility classes */
+.gradient-text {
+    background: linear-gradient(90deg, #4f46e5, #818cf8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Utility classes that might be missed by Tailwind */
+.opacity-0 { opacity: 0 !important; }
+.opacity-100 { opacity: 1 !important; }
+.pointer-events-none { pointer-events: none !important; }
+
+/* Custom carousel & gallery styles */
+.carousel-dot-active {
+    width: 8px !important;
+    height: 8px !important;
+    background-color: white !important;
+}
+
+.carousel-slide {
+    transition: all 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Hover effects */
+.review-image-container {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.review-image-container:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Special effects */
+.glow {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.glow:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+}
+
+/* Navigation link hover effects */
+.nav-link {
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -2px;
+    left: 0;
+    background-color: #3b82f6;
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* Fix for scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Fix for guides dropdown */
+#guides-dropdown.opacity-100 {
+    display: block !important;
+    pointer-events: auto !important;
+}
