@@ -17,8 +17,7 @@
                 <div>
                     <h3 class="text-lg font-bold mb-4">Resources</h3>
                     <ul class="space-y-2">
-                        <li><a href="/guides-crypto" class="hover:text-blue-400">Crypto Trading Guide</a></li>
-                        <li><a href="/guides-forex" class="hover:text-blue-400">Forex Trading Guide</a></li>
+                        <li><a href="/academy" class="hover:text-blue-400">Academy</a></li>
                     </ul>
                 </div>
                 <div>

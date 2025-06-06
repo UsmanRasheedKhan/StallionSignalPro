@@ -1,6 +1,11 @@
 <?php
 // Theme functions for Stallion Signal Pro
 
+// DEBUG: Confirm functions.php is loaded
+add_action('admin_notices', function() {
+    echo '<div class="notice notice-info"><p>functions.php is loaded</p></div>';
+});
+
 // Include authentication functions
 require_once get_template_directory() . '/auth-functions.php';
 
@@ -292,8 +297,19 @@ function stallion_custom_register_user() {
         $is_ajax = isset($_POST['is_ajax']) && $_POST['is_ajax'] == 'true';
         $response = array('success' => false);
         
+        // --- DEBUG LOGGING FOR REGISTRATION ERRORS ---
+function stallion_log_registration_error($message, $data = []) {
+    $log_file = get_template_directory() . '/registration-errors.log';
+    $entry = date('Y-m-d H:i:s') . ' - ' . $message;
+    if (!empty($data)) {
+        $entry .= ' | ' . print_r($data, true);
+    }
+    file_put_contents($log_file, $entry . "\n", FILE_APPEND);
+}
+        
         // Check if passwords match
         if ($password !== $confirm_password) {
+            stallion_log_registration_error('Password mismatch', $_POST);
             if ($is_ajax) {
                 $response['error'] = 'password_mismatch';
                 $response['message'] = 'Passwords do not match.';
@@ -304,9 +320,9 @@ function stallion_custom_register_user() {
                 exit;
             }
         }
-        
         // Password strength validation
         if (strlen($password) < 8) {
+            stallion_log_registration_error('Weak password', $_POST);
             if ($is_ajax) {
                 $response['error'] = 'weak_password';
                 $response['message'] = 'Password must be at least 8 characters long.';
@@ -317,9 +333,9 @@ function stallion_custom_register_user() {
                 exit;
             }
         }
-        
         // Validate password strength (must contain at least one uppercase, one lowercase and one number)
         if (!preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/[0-9]/', $password)) {
+            stallion_log_registration_error('Weak password (pattern)', $_POST);
             if ($is_ajax) {
                 $response['error'] = 'weak_password';
                 $response['message'] = 'Password must include at least one uppercase letter, one lowercase letter, and one number.';
@@ -330,11 +346,9 @@ function stallion_custom_register_user() {
                 exit;
             }
         }
-          // Skip username exists check as per requirements
-        // We'll allow duplicate usernames and only check for unique emails
-        
         // Check if email exists
         if (email_exists($email)) {
+            stallion_log_registration_error('Email exists', $_POST);
             if ($is_ajax) {
                 $response['error'] = 'email_exists';
                 $response['message'] = 'This email address is already registered.';
@@ -345,8 +359,9 @@ function stallion_custom_register_user() {
                 exit;
             }
         }
-          // Validate email domain
+        // Validate email domain
         if (!stallion_is_valid_email_domain($email)) {
+            stallion_log_registration_error('Invalid email domain', $_POST);
             if ($is_ajax) {
                 $response['error'] = 'invalid_email_domain';
                 $response['message'] = stallion_get_invalid_email_message();
@@ -357,10 +372,10 @@ function stallion_custom_register_user() {
                 exit;
             }
         }
-        
         // Create user
         $user_id = wp_create_user($username, $password, $email);
         if (is_wp_error($user_id)) {
+            stallion_log_registration_error('Registration error', $user_id->get_error_message());
             if ($is_ajax) {
                 $response['error'] = 'registration_error';
                 $response['message'] = $user_id->get_error_message();
@@ -853,6 +868,68 @@ function stallion_admin_verification_notice() {
 }
 add_action('admin_notices', 'stallion_admin_verification_notice');
 
+// --- Affiliate Applications CPT Registration ---
+function my_register_affiliate_applications_cpt() {
+    $labels = array(
+        'name' => 'Affiliate Applications',
+        'singular_name' => 'Affiliate Application',
+        'menu_name' => 'Affiliate Applications',
+        'name_admin_bar' => 'Affiliate Application',
+        'add_new' => 'Add New',
+        'add_new_item' => 'Add New Application',
+        'edit_item' => 'Edit Application',
+        'new_item' => 'New Application',
+        'view_item' => 'View Application',
+        'search_items' => 'Search Applications',
+        'not_found' => 'No applications found',
+        'not_found_in_trash' => 'No applications found in Trash',
+    );
+    $args = array(
+        'labels' => $labels,
+        'public' => false,
+        'show_ui' => true,
+        'show_in_menu' => true,
+        'menu_position' => 25,
+        'menu_icon' => 'dashicons-groups',
+        'supports' => array('title'),
+        'capability_type' => 'post',
+        'show_in_admin_bar' => true,
+        'exclude_from_search' => true,
+        'has_archive' => false,
+    );
+    register_post_type('affiliate_application', $args);
+}
+add_action('init', 'my_register_affiliate_applications_cpt');
+
+// Add meta box for Affiliate Application details
+function my_add_affiliate_application_meta_box() {
+    add_meta_box(
+        'affiliate_application_details',
+        'Affiliate Application Details',
+        function($post) {
+            $email = get_post_meta($post->ID, 'affiliate_email', true);
+            $name = get_post_meta($post->ID, 'affiliate_name', true);
+            $message = get_post_meta($post->ID, 'affiliate_message', true);
+            echo '<p><strong>Email:</strong> ' . esc_html($email) . '</p>';
+            echo '<p><strong>Name:</strong> ' . esc_html($name) . '</p>';
+            echo '<p><strong>Message:</strong><br>' . nl2br(esc_html($message)) . '</p>';
+        },
+        'affiliate_application',
+        'normal',
+        'default'
+    );
+}
+add_action('add_meta_boxes', 'my_add_affiliate_application_meta_box');
+
+// Debug: Show admin notice to confirm CPT code is running
+add_action('admin_notices', function() {
+    if (post_type_exists('affiliate_application')) {
+        echo '<div class="notice notice-success"><p>Affiliate Application CPT is registered.</p></div>';
+    } else {
+        echo '<div class="notice notice-error"><p>Affiliate Application CPT is NOT registered.</p></div>';
+    }
+});
+
 /**
  * Show payment proof images in the admin area
  */
@@ -1072,7 +1149,7 @@ function stallion_mark_payment_proof_images_in_media_library($actions, $post) {
     
     // Check if it's a featured image for a payment proof post
     if (!$used_as_payment_proof) {
-        $used_as_payment_proof = $wpdb->get_var(
+        $featured_in_payment_proof = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT p.ID FROM $wpdb->posts p
                 JOIN $wpdb->postmeta pm ON p.ID = pm.post_id
@@ -1085,7 +1162,7 @@ function stallion_mark_payment_proof_images_in_media_library($actions, $post) {
     }
     
     // If attachment is used in a payment proof, add a class and note
-    if ($used_as_payment_proof) {
+    if ($used_as_payment_proof || $featured_in_payment_proof) {
         add_action('admin_footer', function() use ($post) {
             echo '<script type="text/javascript">
                 jQuery(document).ready(function($) {
@@ -1158,3 +1235,235 @@ function stallion_custom_reset_password() {
     wp_send_json($response);
     exit;
 }
+
+// --- Affiliate Form Handler ---
+function stallion_process_affiliate_form() {
+    if (isset($_POST['affiliate_form_nonce']) && wp_verify_nonce($_POST['affiliate_form_nonce'], 'affiliate_form_nonce')) {
+        $email = sanitize_email($_POST['affiliate_email']);
+        $first_name = sanitize_text_field($_POST['affiliate_first_name']);
+        $password = $_POST['affiliate_password'];
+        $password_confirm = $_POST['affiliate_password_confirm'];
+        $paypal = sanitize_email($_POST['affiliate_paypal']);
+        $errors = array();
+        if ($password !== $password_confirm) {
+            $errors[] = 'Passwords do not match.';
+        }
+        if (strlen($password) < 8) {
+            $errors[] = 'Password must be at least 8 characters.';
+        }
+        if (email_exists($email)) {
+            $errors[] = 'This email address is already registered.';
+        }
+        if (!empty($errors)) {
+            // Log error in a user-friendly way
+            error_log('Affiliate form error: ' . implode(' ', $errors));
+            wp_redirect(add_query_arg('affiliate_error', urlencode(implode(' ', $errors)), wp_get_referer()));
+            exit;
+        }
+        // Save as Contact CPT, marked as Affiliate
+        $contact_id = wp_insert_post([
+            'post_type' => 'contact_message',
+            'post_title' => '[Affiliate] ' . $first_name . ' (' . $email . ')',
+            'post_status' => 'publish',
+        ]);
+        if ($contact_id) {
+            update_post_meta($contact_id, 'contact_email', $email);
+            update_post_meta($contact_id, 'contact_paypal', $paypal);
+            update_post_meta($contact_id, 'contact_name', $first_name);
+            // Craft a user-friendly message for the contact_message content
+            $crafted_message = "I would like to signup for the affiliate program.\n\nName: $first_name\nEmail: $email\nPayPal Email: $paypal";
+            // Save as post_content so it appears in the main content box in admin
+            wp_update_post([
+                'ID' => $contact_id,
+                'post_content' => $crafted_message
+            ]);
+            update_post_meta($contact_id, 'contact_message', $crafted_message);
+            // Send crafted email to admin
+            $admin_email = get_option('admin_email');
+            $subject = 'New Affiliate Application';
+            $body = "Affiliate Application Details:\n\nName: $first_name\nEmail: $email\nPayPal Email: $paypal";
+            $headers = array('Content-Type: text/plain; charset=UTF-8');
+            wp_mail($admin_email, $subject, $body, $headers);
+            $redirect_url = home_url('/affiliate/');
+            $redirect_url = add_query_arg('affiliate_status', 'success', $redirect_url);
+            wp_send_json_success(['redirect' => $redirect_url]);
+        } else {
+            $error_message = is_wp_error($post_id) ? $post_id->get_error_message() : 'There was a problem saving your application. Please try again.';
+            error_log('Affiliate form error: ' . $error_message);
+            wp_redirect(add_query_arg('affiliate_error', urlencode($error_message), wp_get_referer() ?: home_url('/affiliate')));
+            exit;
+        }
+    }
+    wp_redirect(add_query_arg('affiliate_error', urlencode('Security check failed. Please refresh and try again.'), home_url('/affiliate')));
+    exit;
+}
+add_action('admin_post_process_affiliate_form', 'stallion_process_affiliate_form');
+add_action('admin_post_nopriv_process_affiliate_form', 'stallion_process_affiliate_form');
+
+// Register Affiliate Applications CPT
+function register_affiliate_applications_cpt() {
+    $labels = array(
+        'name' => 'Affiliate Applications',
+        'singular_name' => 'Affiliate Application',
+        'menu_name' => 'Affiliate Applications',
+        'name_admin_bar' => 'Affiliate Application',
+        'add_new' => 'Add New',
+        'add_new_item' => 'Add New Application',
+        'edit_item' => 'Edit Application',
+        'new_item' => 'New Application',
+        'view_item' => 'View Application',
+        'search_items' => 'Search Applications',
+        'not_found' => 'No applications found',
+        'not_found_in_trash' => 'No applications found in Trash',
+    );
+    $args = array(
+        'labels' => $labels,
+        'public' => false,
+        'show_ui' => true,
+        'show_in_menu' => true,
+        'menu_position' => 25,
+        'menu_icon' => 'dashicons-groups',
+        'supports' => array('title'),
+        'capability_type' => 'post',
+        'show_in_admin_bar' => true,
+        'exclude_from_search' => true,
+        'has_archive' => false,
+    );
+    register_post_type('affiliate_application', $args);
+}
+add_action('init', 'register_affiliate_applications_cpt');
+
+// Add meta box for Affiliate Application details
+function add_affiliate_application_meta_box() {
+    add_meta_box(
+        'affiliate_application_details',
+        'Affiliate Application Details',
+        function($post) {
+            $email = get_post_meta($post->ID, 'affiliate_email', true);
+            $name = get_post_meta($post->ID, 'affiliate_name', true);
+            $message = get_post_meta($post->ID, 'affiliate_message', true);
+            echo '<p><strong>Email:</strong> ' . esc_html($email) . '</p>';
+            echo '<p><strong>Name:</strong> ' . esc_html($name) . '</p>';
+            echo '<p><strong>Message:</strong><br>' . nl2br(esc_html($message)) . '</p>';
+        },
+        'affiliate_application',
+        'normal',
+        'default'
+    );
+}
+add_action('add_meta_boxes', 'add_affiliate_application_meta_box');
+
+// Handle Affiliate Form Submission (AJAX)
+function handle_affiliate_form() {
+    $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
+    $paypal = isset($_POST['paypal']) ? sanitize_email($_POST['paypal']) : '';
+    $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
+    if (!$email || !$name || !$paypal) {
+        wp_send_json_error(['message' => 'All fields are required.']);
+    }
+    // Check for duplicate affiliate signup by email (must not already exist with [Affiliate] in title)
+    $existing = get_posts([
+        'post_type' => 'contact_message',
+        'meta_query' => [
+            [
+                'key' => 'contact_email',
+                'value' => $email,
+                'compare' => '=',
+            ]
+        ],
+        's' => '[Affiliate]',
+        'posts_per_page' => 1,
+        'fields' => 'ids',
+    ]);
+    if ($existing) {
+        wp_send_json_error(['message' => 'This email has already applied as an affiliate.']);
+    }
+    // Craft the message
+    $crafted_message = "I would like to signup for the affiliate program.\n\nName: $name\nEmail: $email\nPayPal Email: $paypal";
+    // Save as Contact CPT, marked as Affiliate
+    $contact_id = wp_insert_post([
+        'post_type' => 'contact_message',
+        'post_title' => '[Affiliate] ' . $name . ' (' . $email . ')',
+        'post_status' => 'publish',
+        'post_content' => $crafted_message,
+    ]);
+    if ($contact_id) {
+        update_post_meta($contact_id, 'contact_email', $email);
+        update_post_meta($contact_id, 'contact_paypal', $paypal);
+        update_post_meta($contact_id, 'contact_name', $name);
+        update_post_meta($contact_id, 'contact_message', $crafted_message);
+        // Send crafted email to admin
+        $admin_email = get_option('admin_email');
+        $subject = 'New Affiliate Application';
+        $body = "Affiliate Application Details:\n\nName: $name\nEmail: $email\nPayPal Email: $paypal";
+        $headers = array('Content-Type: text/plain; charset=UTF-8');
+        wp_mail($admin_email, $subject, $body, $headers);
+        wp_send_json_success(['message' => 'Affiliate application submitted successfully!']);
+    } else {
+        wp_send_json_error(['message' => 'There was a problem saving your application. Please try again.']);
+    }
+}
+add_action('wp_ajax_affiliate_form', 'handle_affiliate_form');
+add_action('wp_ajax_nopriv_affiliate_form', 'handle_affiliate_form');
+
+// Fallback for non-AJAX (if form posts to page)
+function handle_affiliate_form_fallback() {
+    $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
+    $paypal = isset($_POST['paypal']) ? sanitize_email($_POST['paypal']) : '';
+    $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
+    $message = isset($_POST['message']) ? sanitize_textarea_field($_POST['message']) : '';
+    if (!$email || !$name || !$message || !$paypal) {
+        return ['success' => false, 'message' => 'All fields are required.'];
+    }
+    $existing = get_posts([
+        'post_type' => 'contact_message',
+        'meta_query' => [
+            [
+                'key' => 'contact_email',
+                'value' => $email,
+                'compare' => '=',
+            ]
+        ],
+        's' => '[Affiliate]',
+        'posts_per_page' => 1,
+        'fields' => 'ids',
+    ]);
+    if ($existing) {
+        return ['success' => false, 'message' => 'This email has already applied as an affiliate.'];
+    }
+    $contact_id = wp_insert_post([
+        'post_type' => 'contact_message',
+        'post_title' => '[Affiliate] ' . $name . ' (' . $email . ')',
+        'post_status' => 'publish',
+    ]);
+    if ($contact_id) {
+        update_post_meta($contact_id, 'contact_email', $email);
+        update_post_meta($contact_id, 'contact_paypal', $paypal);
+        update_post_meta($contact_id, 'contact_name', $name);
+        update_post_meta($contact_id, 'contact_message', '[Affiliate] ' . $message);
+        return ['success' => true, 'message' => 'Affiliate application submitted successfully!'];
+    } else {
+        return ['success' => false, 'message' => 'There was a problem saving your application. Please try again.'];
+    }
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['affiliate_form'])) {
+    $result = handle_affiliate_form_fallback();
+    $redirect_url = home_url('/affiliate/');
+    if ($result['success']) {
+        $redirect_url = add_query_arg('affiliate_status', 'success', $redirect_url);
+    } else {
+        $redirect_url = add_query_arg('affiliate_status', 'error', $redirect_url);
+        $redirect_url = add_query_arg('affiliate_message', urlencode($result['message']), $redirect_url);
+    }
+    wp_redirect($redirect_url);
+    exit;
+}
+
+// Rename Contacts tab to Contact/Affiliate Queries
+add_filter('register_post_type_args', function($args, $post_type) {
+    if ($post_type === 'contact_message') {
+        $args['labels']['menu_name'] = 'Contact/Affiliate Queries';
+        $args['menu_name'] = 'Contact/Affiliate Queries';
+    }
+    return $args;
+}, 10, 2);

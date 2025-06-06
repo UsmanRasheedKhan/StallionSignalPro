@@ -235,7 +235,8 @@ Template Name: Front Page
                             <li class="flex items-center text-gray-500"><i class="fas fa-times text-red-500 mr-2"></i><span>No Telegram alerts</span></li>
                             <li class="flex items-center text-gray-500"><i class="fas fa-times text-red-500 mr-2"></i><span>No premium signals</span></li>
                         </ul>
-                        <a href="https://t.me/YourTelegramGroup" target="_blank" class="pricing-button w-full py-2 px-4 border border-indigo-500 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-md font-medium transition duration-300 text-center block">Join Telegram</a>
+                        <button class="pricing-button w-full py-2 px-4 border border-indigo-500 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-md font-medium transition duration-300 text-center block" data-plan="free">Join Telegram</button>
+                        <!-- <a href="https://t.me/stallionsignalfree" target="_blank" class="pricing-button w-full py-2 px-4 border border-indigo-500 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-md font-medium transition duration-300 text-center block">Join Telegram</a> -->
                     </div>
                 </div>
                 <!-- Crypto VIP Plan -->
@@ -477,9 +478,8 @@ Template Name: Front Page
                 </div>
                 <div class="md:w-1/2">                    <div class="bg-gray-700 p-8 rounded-lg">
                         <h3 class="text-xl font-bold mb-6">Send Us a Message</h3>
-                        <form id="contact-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                            <input type="hidden" name="action" value="process_contact_form">
-                            <?php wp_nonce_field('contact_form_nonce', 'contact_form_nonce'); ?>
+                        <form id="contact-form" method="post" action="<?php echo esc_url(get_template_directory_uri() . '/process-contact.php'); ?>">
+                            <input type="hidden" name="contact_form_nonce" value="<?php echo wp_create_nonce('contact_form_nonce'); ?>">
                             <div class="mb-4">                                <label for="contact_name" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
                                 <input type="text" id="contact_name" name="contact_name" class="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
                             </div>
@@ -633,7 +633,17 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             const planName = this.getAttribute('data-plan');
             if (planName === 'free') {
-                // Let the anchor redirect to Telegram
+                // If not logged in, open login modal and store intent to redirect to Telegram after login
+                const isLoggedIn = <?php echo is_user_logged_in() ? 'true' : 'false'; ?>;
+                if (!isLoggedIn) {
+                    e.preventDefault();
+                    openLoginModal('free');
+                    sessionStorage.setItem('redirect_to_telegram', '1');
+                } else {
+                    // If logged in, redirect to Telegram
+                    window.open('https://t.me/stallionsignalfree', '_blank');
+                    e.preventDefault();
+                }
                 return;
             }
             if (planName === 'forex' || planName === 'gold') {
@@ -658,9 +668,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const isLoggedIn = <?php echo is_user_logged_in() ? 'true' : 'false'; ?>;
             if (!isLoggedIn) {
                 e.preventDefault();
-                openLoginModal();
+                openLoginModal('free');
+                sessionStorage.setItem('redirect_to_telegram', '1');
+            } else {
+                // If logged in, redirect to Telegram
+                window.open('https://t.me/stallionsignalfree', '_blank');
+                e.preventDefault();
             }
         });
+    }
+    // After login, if user intended to go to Telegram, redirect them
+    if (sessionStorage.getItem('redirect_to_telegram') === '1') {
+        sessionStorage.removeItem('redirect_to_telegram');
+        window.open('https://t.me/stallionsignalfree', '_blank');
     }
 });
 </script>

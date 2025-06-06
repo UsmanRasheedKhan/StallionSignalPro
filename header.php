@@ -165,15 +165,8 @@
                         <li><a href="<?php echo is_front_page() ? '#services' : esc_url(home_url('/')) . '#services'; ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Services</a></li>
                         <li><a href="<?php echo is_front_page() ? '#pricing' : esc_url(home_url('/')) . '#pricing'; ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Pricing</a></li>
                         <li><a href="<?php echo is_front_page() ? '#faq' : esc_url(home_url('/')) . '#faq'; ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">FAQ</a></li>
-                        <li><a href="<?php echo is_front_page() ? '#contact' : esc_url(home_url('/')) . '#contact'; ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Contact</a></li>                        <li class="relative" id="guides-nav-item">
-                            <button id="guides-nav-btn" class="nav-link px-3 py-2 rounded-md text-sm font-medium flex items-center focus:outline-none">
-                                Guides <i class="fas fa-chevron-down ml-1 text-xs transition-transform duration-200"></i>
-                            </button>
-                            <div id="guides-dropdown">
-                                <a href="<?php echo esc_url(home_url('/guides-crypto')); ?>">Crypto Trading Guide</a>
-                                <a href="<?php echo esc_url(home_url('/guides-forex')); ?>">Forex Trading Guide</a>
-                            </div>
-                        </li>
+                        <li><a href="<?php echo is_front_page() ? '#contact' : esc_url(home_url('/')) . '#contact'; ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Contact</a></li>
+                        <li><a href="<?php echo esc_url(home_url('/affiliate')); ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Affiliate</a></li>
                         <li><a href="<?php echo esc_url(home_url('/academy')); ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Academy</a></li>
                         <?php if (is_user_logged_in()) : ?>
                         <li><a href="<?php echo esc_url(home_url('/profile')); ?>" class="nav-link px-3 py-2 rounded-md text-sm font-medium">Profile</a></li>
@@ -183,7 +176,7 @@
 
                 <!-- Desktop Auth Buttons (Right) -->                <div class="flex-shrink-0">
                     <div id="auth-section" class="ml-4 flex items-center md:ml-6">                        <?php if (is_user_logged_in()) : ?>                            <div class="flex items-center space-x-3">
-                                <a href="https://t.me/stallionsupport" target="_blank" class="px-3 py-2 text-blue-400 hover:text-blue-300" title="Contact us on Telegram">
+                                <a href="https://t.me/stallionsignalfree" target="_blank" class="px-3 py-2 text-blue-400 hover:text-blue-300" title="Contact us on Telegram">
                                     <i class="fab fa-telegram text-2xl"></i>
                                 </a><a href="<?php echo esc_url(home_url('/profile')); ?>"class="px-3 py-2 text-gray-300 hover:text-white flex items-center">
                                     <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-2">

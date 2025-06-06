@@ -114,3 +114,57 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState({}, document.title, newUrl.toString());
     }
 });
+
+// Affiliate form AJAX redirect handler
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', function() {
+    // Use querySelector for the first affiliate form only (enforce only one per page)
+    var affiliateForm = document.querySelector('form#affiliate-form');
+    if (affiliateForm) {
+      affiliateForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(affiliateForm);
+        var submitBtn = affiliateForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        // Remove any previous message in this form's parent
+        var oldMsg = affiliateForm.parentNode.querySelector('#affiliate-form-message');
+        if (oldMsg) oldMsg.remove();
+        // Ensure the action is a string URL, not an input element
+        var actionUrl = affiliateForm.getAttribute('action');
+        if (typeof actionUrl !== 'string') {
+          actionUrl = String(actionUrl);
+        }
+        fetch(actionUrl, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin'
+        })
+        .then(res => res.json())
+        .then(data => {
+          var msgDiv = document.createElement('div');
+          msgDiv.id = 'affiliate-form-message';
+          msgDiv.className = 'mb-4 p-3 rounded-md text-center';
+          if (data && data.success) {
+            msgDiv.classList.add('bg-green-800', 'text-green-200');
+            msgDiv.textContent = data.message || 'Your affiliate application has been submitted successfully!';
+            affiliateForm.reset();
+          } else {
+            msgDiv.classList.add('bg-red-800', 'text-red-200');
+            msgDiv.textContent = (data && data.message) ? data.message : 'There was a problem saving your application. Please try again.';
+          }
+          affiliateForm.parentNode.insertBefore(msgDiv, affiliateForm);
+        })
+        .catch(() => {
+          var msgDiv = document.createElement('div');
+          msgDiv.id = 'affiliate-form-message';
+          msgDiv.className = 'mb-4 p-3 bg-red-800 text-red-200 rounded-md text-center';
+          msgDiv.textContent = 'There was a problem submitting the form. Please try again.';
+          affiliateForm.parentNode.insertBefore(msgDiv, affiliateForm);
+        })
+        .finally(() => {
+          if (submitBtn) submitBtn.disabled = false;
+        });
+      });
+    }
+  });
+}
